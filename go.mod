@@ -1,4 +1,4 @@
-module github.com/Sledunois/bigbluebutton-telegraf-plugin
+module github.com/SLedunois/bigbluebutton-telegraf-plugin
 
 go 1.16
 
