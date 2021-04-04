@@ -202,6 +202,7 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 		"participant_count":       0,
 		"video_count":             0,
 		"voice_participant_count": 0,
+		"score":                   0,
 	}
 
 	if response.MessageKey == "noMeetings" {
@@ -219,6 +220,8 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 		if meeting.Recording {
 			record["active_recording"]++
 		}
+
+		record["score"] += b.computeScore(meeting)
 	}
 
 	acc.AddFields("bigbluebutton_meetings", toStringMapInterface(record), make(map[string]string))
@@ -257,6 +260,16 @@ func (b *BigBlueButton) gatherRecordings(acc telegraf.Accumulator) error {
 
 	acc.AddFields("bigbluebutton_recordings", toStringMapInterface(record), make(map[string]string))
 	return nil
+}
+
+func (b *BigBlueButton) computeScore(meeting Meeting) uint64 {
+	var score uint64 = 0
+	score += 1 * b.Scores["meeting_created"]
+	score += meeting.ParticipantCount * b.Scores["user_joined"]
+	score += meeting.ListenerCount * b.Scores["user_listen"]
+	score += meeting.VoiceParticipantCount * b.Scores["user_voice_enabled"]
+	score += meeting.VideoCount * b.Scores["user_video_enabled"]
+	return score
 }
 
 func toStringMapInterface(in map[string]uint64) map[string]interface{} {
