@@ -14,11 +14,12 @@ import (
 )
 
 type BigBlueButton struct {
-	URL              string `toml:"url"`
-	PathPrefix       string `toml:"path_prefix"`
-	SecretKey        string `toml:"secret_key"`
-	Username         string `toml:"username"`
-	Password         string `toml:"password"`
+	URL              string            `toml:"url"`
+	PathPrefix       string            `toml:"path_prefix"`
+	SecretKey        string            `toml:"secret_key"`
+	Username         string            `toml:"username"`
+	Password         string            `toml:"password"`
+	Scores           map[string]uint64 `toml:"scores"`
 	getMeetingsURL   string
 	getRecordingsURL string
 
@@ -27,26 +28,48 @@ type BigBlueButton struct {
 	client *http.Client
 }
 
+var defaultScores = map[string]uint64{
+	"meeting_created":    0,
+	"user_joined":        0,
+	"user_listen":        0,
+	"user_voice_enabled": 0,
+	"user_video_enabled": 0,
+}
+
 var defaultPathPrefix = "/bigbluebutton"
 
 var sampleConfig = `
 	## Required BigBlueButton server url
 	url = "http://localhost:8090"
+
 	## BigBlueButton path prefix. Default is "/bigbluebutton"
 	# path_prefix = "/bigbluebutton"
+
 	## Required BigBlueButton secret key
 	secret_key = ""
+
 	## Optional HTTP Basic Auth Credentials
 	# username = "username"
 	# password = "pa$$word
+
 	## Optional HTTP Proxy support
 	# http_proxy_url = ""
+
 	## Optional TLS Config
 	# tls_ca = "/etc/telegraf/ca.pem"
 	# tls_cert = "/etc/telegraf/cert.pem"
 	# tls_key = "/etc/telegraf/key.pem"
+
 	## Use TLS but skip chain & host verification
 	# insecure_skip_verify = false
+
+	## Server score
+	#[inputs.bigbluebutton.scores]
+	#  meeting_created = 0
+	#  user_joined = 0
+	#  user_listen = 0
+	#  user_voice_enabled = 0
+	#  user_video_enabled = 0
 `
 
 func (b *BigBlueButton) Init() error {
@@ -60,6 +83,8 @@ func (b *BigBlueButton) Init() error {
 
 	b.getMeetingsURL = b.getURL("getMeetings")
 	b.getRecordingsURL = b.getURL("getRecordings")
+
+	b.loadScores()
 
 	tlsCfg, err := b.ClientConfig.TLSConfig()
 	if err != nil {
@@ -81,6 +106,26 @@ func (b *BigBlueButton) Init() error {
 	}
 
 	return nil
+}
+
+func (b *BigBlueButton) loadScores() {
+	if len(b.Scores) == 0 {
+		b.Scores = defaultScores
+		return
+	}
+
+	// Copy default scores into a new map
+	scores := map[string]uint64{}
+	for key, value := range defaultScores {
+		scores[key] = value
+	}
+
+	// Merge configured scores into the previous new map
+	for key, value := range b.Scores {
+		scores[key] = value
+	}
+
+	b.Scores = scores
 }
 
 func (b *BigBlueButton) SampleConfig() string {
