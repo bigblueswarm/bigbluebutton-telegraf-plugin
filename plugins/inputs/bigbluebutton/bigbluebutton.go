@@ -151,6 +151,7 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 	}
 
 	record := map[string]uint64{
+		"active_meetings":         0,
 		"active_recording":        0,
 		"listener_count":          0,
 		"participant_count":       0,
@@ -165,11 +166,12 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 
 	for i := 0; i < len(response.Meetings.Values); i++ {
 		meeting := response.Meetings.Values[i]
+		record["active_meetings"] += 1
 		record["participant_count"] += meeting.ParticipantCount
 		record["listener_count"] += meeting.ListenerCount
 		record["voice_participant_count"] += meeting.VoiceParticipantCount
 		record["video_count"] += meeting.VideoCount
-		if meeting.Recording == true {
+		if meeting.Recording {
 			record["active_recording"]++
 		}
 	}

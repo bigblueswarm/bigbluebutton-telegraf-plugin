@@ -68,6 +68,7 @@ func TestBigBlueButton(t *testing.T) {
 	require.Empty(t, acc.Errors)
 
 	meetingsRecord := map[string]uint64{
+		"active_meetings":         2,
 		"participant_count":       15,
 		"listener_count":          12,
 		"voice_participant_count": 4,
@@ -105,6 +106,7 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 	require.Empty(t, acc.Errors)
 
 	meetingsRecord := map[string]uint64{
+		"active_meetings":         0,
 		"participant_count":       0,
 		"listener_count":          0,
 		"voice_participant_count": 0,
