@@ -66,7 +66,7 @@ bigbluebutton_recordings recordings_count=0i,published_recordings_count=0i 16176
 * Configure telegraf to call it using execd
  ```toml
 [[inputs.execd]]
-  command = ["/path/to/bbb-telegraf", "-config /path/to/bbb-telegraf/config","-poll_interval 10s"]
+  command = ["/path/to/bbb-telegraf", "-config", "/path/to/bbb-telegraf/config", "-poll_interval", "10s"]
   signal = "none"
  ```
 
