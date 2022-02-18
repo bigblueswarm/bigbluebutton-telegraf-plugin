@@ -54,11 +54,15 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
   - fields:
     - recordings_count
     - published_recordings_count
+- bigbluebutton_api:
+  - fields:
+	- online
 
 ## Example output
 ``` 
 bigbluebutton_meetings active_recording=0i,listener_count=1i,participant_count=2i,video_count=0i,voice_participant_count=0i,score=9i,active_meetings=2i 1617611008787972024
 bigbluebutton_recordings recordings_count=0i,published_recordings_count=0i 1617611008800460253
+bigbluebutton_api online=1i 1617611008800460842
 ```
 
 ## Installation

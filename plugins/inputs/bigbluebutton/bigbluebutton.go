@@ -22,6 +22,7 @@ type BigBlueButton struct {
 	Scores           map[string]uint64 `toml:"scores"`
 	getMeetingsURL   string
 	getRecordingsURL string
+	healthCheckURL   string
 
 	tls.ClientConfig
 	proxy.HTTPProxy
@@ -83,6 +84,7 @@ func (b *BigBlueButton) Init() error {
 
 	b.getMeetingsURL = b.getURL("getMeetings")
 	b.getRecordingsURL = b.getURL("getRecordings")
+	b.healthCheckURL = b.getHealthCheckURL()
 
 	b.loadScores()
 
@@ -141,7 +143,11 @@ func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
 		return err
 	}
 
-	return b.gatherRecordings(acc)
+	if err := b.gatherRecordings(acc); err != nil {
+		return err
+	}
+
+	return b.gatherAPIStatus(acc)
 }
 
 // BigBlueButton uses an authentication based on a SHA1 checksum processed from api call name and server secret key
@@ -154,6 +160,11 @@ func (b *BigBlueButton) checksum(apiCallName string) []byte {
 func (b *BigBlueButton) getURL(apiCallName string) string {
 	endpoint := fmt.Sprintf("%s/api/%s", b.PathPrefix, apiCallName)
 	return fmt.Sprintf("%s%s?checksum=%x", b.URL, endpoint, b.checksum(apiCallName))
+}
+
+func (b *BigBlueButton) getHealthCheckURL() string {
+	endpoint := fmt.Sprintf("%s/api", b.PathPrefix)
+	return fmt.Sprintf("%s%s", b.URL, endpoint)
 }
 
 // Call BBB server api
@@ -181,6 +192,32 @@ func (b *BigBlueButton) api(url string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (b *BigBlueButton) gatherAPIStatus(acc telegraf.Accumulator) error {
+	record := map[string]uint64{
+		"online": 0,
+	}
+
+	body, err := b.api(b.getMeetingsURL)
+	if err != nil {
+		acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
+		return err
+	}
+
+	var response HealthCheck
+	err = xml.Unmarshal(body, &response)
+	if err != nil {
+		acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
+		return err
+	}
+
+	if response.ReturnCode == "SUCCESS" {
+		record["online"] = 1
+	}
+
+	acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
+	return nil
 }
 
 func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
