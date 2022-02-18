@@ -19,6 +19,10 @@ var emptyState = false
 
 func getXMLResponse(requestURI string) ([]byte, int) {
 	apiName := strings.Split(strings.TrimPrefix(requestURI, "/bigbluebutton/api/"), "?")[0]
+	if apiName == "" {
+		apiName = "healthcheck"
+	}
+
 	xmlFile := fmt.Sprintf("./testdata/%s.xml", apiName)
 
 	if emptyState {
@@ -91,11 +95,16 @@ func TestBigBlueButton(t *testing.T) {
 		"published_recordings_count": 1,
 	}
 
+	apiStatusRecord := map[string]uint64{
+		"online": 1,
+	}
+
 	tags := make(map[string]string)
 
 	expected := []telegraf.Metric{
 		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
 		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))
@@ -130,11 +139,16 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 		"published_recordings_count": 0,
 	}
 
+	apiStatusRecord := map[string]uint64{
+		"online": 0,
+	}
+
 	tags := make(map[string]string)
 
 	expected := []telegraf.Metric{
 		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
 		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))

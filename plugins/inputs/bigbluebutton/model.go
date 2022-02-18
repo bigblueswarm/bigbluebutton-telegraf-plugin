@@ -46,3 +46,10 @@ type Meeting struct {
 	VideoCount            uint64   `xml:"videoCount"`
 	Recording             bool     `xml:"recording"`
 }
+
+// HeathCheck is a api health check response
+type HealthCheck struct {
+	XMLName    xml.Name `xml:"response"`
+	ReturnCode string   `xml:"returncode"`
+	Version    string   `xml:"version"`
+}
