@@ -1,10 +1,10 @@
-name: Release B3LB
+name: Release BigBlueButton telegraf plugin
 on:
   release:
     types: [published]
 env:
-  BINARY_NAME: b3lb
-  CMD_PATH: ./cmd/b3lb
+  BINARY_NAME: bbb-telegraf-plugin
+  CMD_PATH: ./cmd
 jobs:  
   releases-matrix:
     name: Build artifact
