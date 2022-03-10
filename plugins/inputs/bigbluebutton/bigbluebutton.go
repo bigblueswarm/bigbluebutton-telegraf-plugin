@@ -199,7 +199,7 @@ func (b *BigBlueButton) gatherAPIStatus(acc telegraf.Accumulator) error {
 		"online": 0,
 	}
 
-	body, err := b.api(b.getMeetingsURL)
+	body, err := b.api(b.healthCheckURL)
 	if err != nil {
 		acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
 		return err

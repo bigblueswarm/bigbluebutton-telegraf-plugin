@@ -19,7 +19,7 @@ var emptyState = false
 
 func getXMLResponse(requestURI string) ([]byte, int) {
 	apiName := strings.Split(strings.TrimPrefix(requestURI, "/bigbluebutton/api/"), "?")[0]
-	if apiName == "" {
+	if apiName == "/bigbluebutton/api" {
 		apiName = "healthcheck"
 	}
 
