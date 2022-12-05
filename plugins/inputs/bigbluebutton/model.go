@@ -1,3 +1,4 @@
+// Package bigbluebutton provides gather functionality
 package bigbluebutton
 
 import "encoding/xml"
@@ -47,7 +48,7 @@ type Meeting struct {
 	Recording             bool     `xml:"recording"`
 }
 
-// HeathCheck is a api health check response
+// HealthCheck is a api health check response
 type HealthCheck struct {
 	XMLName    xml.Name `xml:"response"`
 	ReturnCode string   `xml:"returncode"`

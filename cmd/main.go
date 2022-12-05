@@ -1,3 +1,4 @@
+// BigBlueButton telegraf plugin gather bigbluebutton functional data from a server
 package main
 
 import (
