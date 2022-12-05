@@ -1,5 +1,12 @@
 # BigBlueButton Input Plugin
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ffb957fe6074e93b06b6b52106a4659)](https://www.codacy.com/gh/bigblueswarm/bigbluebutton-telegraf-plugin/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bigblueswarm/bigbluebutton-telegraf-plugin&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ffb957fe6074e93b06b6b52106a4659)](https://www.codacy.com/gh/bigblueswarm/bigbluebutton-telegraf-plugin/dashboard?utm_source=github.com&utm_medium=referral&utm_content=bigblueswarm/bigbluebutton-telegraf-plugin&utm_campaign=Badge_Coverage)
+[![Code linting](https://github.com/bigblueswarm/bbsctl/actions/workflows/lint.yml/badge.svg)](https://github.com/bigblueswarm/bigbluebutton-telegraf-plugin/actions/workflows/lint.yml)
+[![Unit tests](https://github.com/bigblueswarm/bbsctl/actions/workflows/unit_test.yml/badge.svg)](https://github.com/bigblueswarm/bigbluebutton-telegraf-plugin/actions/workflows/unit_test.yml)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/bigblueswarm/bigbluebutton-telegraf-plugin)
+![GitHub](https://img.shields.io/github/license/bigblueswarm/bigbluebutton-telegraf-plugin)
+
 The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigbluebutton.org/) server. It uses [BigBlueButton API](https://docs.bigbluebutton.org/dev/api.html) `getMeetings` and `getRecordings` endpoints to query the data.
 
 ## Configuration
