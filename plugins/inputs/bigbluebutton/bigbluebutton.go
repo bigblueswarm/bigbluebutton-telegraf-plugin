@@ -1,3 +1,4 @@
+// Package bigbluebutton provides gather functionality
 package bigbluebutton
 
 import (
@@ -13,6 +14,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
 
+// BigBlueButton is the global configuration object
 type BigBlueButton struct {
 	URL              string            `toml:"url"`
 	PathPrefix       string            `toml:"path_prefix"`
@@ -73,6 +75,7 @@ var sampleConfig = `
 	#  user_video_enabled = 0
 `
 
+// Init initialize the BigBlueButton struct with precalculated data
 func (b *BigBlueButton) Init() error {
 	if b.SecretKey == "" {
 		return fmt.Errorf("BigBlueButton secret key is required")
@@ -130,14 +133,17 @@ func (b *BigBlueButton) loadScores() {
 	b.Scores = scores
 }
 
+// SampleConfig provides a sample config object
 func (b *BigBlueButton) SampleConfig() string {
 	return sampleConfig
 }
 
+// Description provides a simple description sentence that explain the plugin
 func (b *BigBlueButton) Description() string {
 	return "Gather BigBlueButton web conferencing server metrics"
 }
 
+// Gather gather data from the BigBlueButton server end send them into the telegraf accumulator
 func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
 	if err := b.gatherMeetings(acc); err != nil {
 		return err
@@ -249,7 +255,7 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 
 	for i := 0; i < len(response.Meetings.Values); i++ {
 		meeting := response.Meetings.Values[i]
-		record["active_meetings"] += 1
+		record["active_meetings"]++
 		record["participant_count"] += meeting.ParticipantCount
 		record["listener_count"] += meeting.ListenerCount
 		record["voice_participant_count"] += meeting.VoiceParticipantCount
@@ -300,7 +306,7 @@ func (b *BigBlueButton) gatherRecordings(acc telegraf.Accumulator) error {
 }
 
 func (b *BigBlueButton) computeScore(meeting Meeting) uint64 {
-	var score uint64 = 0
+	var score uint64
 	score += 1 * b.Scores["meeting_created"]
 	score += meeting.ParticipantCount * b.Scores["user_joined"]
 	score += meeting.ListenerCount * b.Scores["user_listen"]
