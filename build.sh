@@ -70,10 +70,10 @@ PLATFORMS_ARM="linux freebsd netbsd"
 type setopt >/dev/null 2>&1
 
 VERSION="v1.0.0"
-SCRIPT_NAME=`basename "$0"`
+SCRIPT_NAME=$(basename "$0")
 MAIN="cmd/main.go"
 FAILURES=""
-SOURCE_FILE=`echo ${MAIN} | sed 's/\.go//'`
+SOURCE_FILE=$(echo ${MAIN} | sed 's/\.go//')
 CURRENT_DIRECTORY=${PWD##*/}
 OUTPUT=${SOURCE_FILE:-$CURRENT_DIRECTORY} # if no src file given, use current dir name
 PKG="pkg/bbb-telegraf"
