@@ -5,7 +5,7 @@ on:
 env:
   BINARY_NAME: bbb-telegraf-plugin
   CMD_PATH: ./cmd
-jobs:  
+jobs:
   releases-matrix:
     name: Build artifact
     runs-on: ubuntu-latest
@@ -15,13 +15,13 @@ jobs:
         goos: [linux]
         goarch: ["386", amd64, arm64]
     steps:
-    - uses: actions/checkout@v2
-    - uses: wangyoucao577/go-release-action@v1.22
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: 1.15
-        project_path: "${{ env.CMD_PATH }}"
-        binary_name: "${{ env.BINARY_NAME }}"
-        extra_files: LICENSE README.md
+      - uses: actions/checkout@v2
+      - uses: wangyoucao577/go-release-action@v1.22
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          goversion: 1.19
+          project_path: "${{ env.CMD_PATH }}"
+          binary_name: "${{ env.BINARY_NAME }}"
+          extra_files: LICENSE README.md
