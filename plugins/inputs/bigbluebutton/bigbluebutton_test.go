@@ -53,11 +53,10 @@ func getHTTPServer() *httptest.Server {
 	}))
 }
 
-func getPlugin(url string, scores map[string]uint64) BigBlueButton {
+func getPlugin(url string) BigBlueButton {
 	return BigBlueButton{
 		URL:       url,
 		SecretKey: "OxShRR1sT8FrJZq",
-		Scores:    scores,
 	}
 }
 
@@ -65,15 +64,7 @@ func TestBigBlueButton(t *testing.T) {
 	s := getHTTPServer()
 	defer s.Close()
 
-	scores := map[string]uint64{
-		"meeting_created":    1,
-		"user_joined":        1,
-		"user_listen":        2,
-		"user_voice_enabled": 5,
-		"user_video_enabled": 5,
-	}
-
-	plugin := getPlugin(s.URL, scores)
+	plugin := getPlugin(s.URL)
 	plugin.Init()
 	acc := &testutil.Accumulator{}
 	plugin.Gather(acc)
@@ -87,7 +78,6 @@ func TestBigBlueButton(t *testing.T) {
 		"voice_participant_count": 4,
 		"video_count":             1,
 		"active_recording":        0,
-		"score":                   66,
 	}
 
 	recordingsRecord := map[string]uint64{
@@ -117,7 +107,7 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 	s := getHTTPServer()
 	defer s.Close()
 
-	plugin := getPlugin(s.URL, map[string]uint64{})
+	plugin := getPlugin(s.URL)
 	plugin.Init()
 	acc := &testutil.Accumulator{}
 	plugin.Gather(acc)
@@ -131,7 +121,6 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 		"voice_participant_count": 0,
 		"video_count":             0,
 		"active_recording":        0,
-		"score":                   0,
 	}
 
 	recordingsRecord := map[string]uint64{
