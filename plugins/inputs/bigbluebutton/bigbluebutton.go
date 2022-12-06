@@ -16,12 +16,11 @@ import (
 
 // BigBlueButton is the global configuration object
 type BigBlueButton struct {
-	URL              string            `toml:"url"`
-	PathPrefix       string            `toml:"path_prefix"`
-	SecretKey        string            `toml:"secret_key"`
-	Username         string            `toml:"username"`
-	Password         string            `toml:"password"`
-	Scores           map[string]uint64 `toml:"scores"`
+	URL              string `toml:"url"`
+	PathPrefix       string `toml:"path_prefix"`
+	SecretKey        string `toml:"secret_key"`
+	Username         string `toml:"username"`
+	Password         string `toml:"password"`
 	getMeetingsURL   string
 	getRecordingsURL string
 	healthCheckURL   string
@@ -29,14 +28,6 @@ type BigBlueButton struct {
 	tls.ClientConfig
 	proxy.HTTPProxy
 	client *http.Client
-}
-
-var defaultScores = map[string]uint64{
-	"meeting_created":    0,
-	"user_joined":        0,
-	"user_listen":        0,
-	"user_voice_enabled": 0,
-	"user_video_enabled": 0,
 }
 
 var defaultPathPrefix = "/bigbluebutton"
@@ -65,14 +56,6 @@ var sampleConfig = `
 
 	## Use TLS but skip chain & host verification
 	# insecure_skip_verify = false
-
-	## Server score
-	#[inputs.bigbluebutton.scores]
-	#  meeting_created = 0
-	#  user_joined = 0
-	#  user_listen = 0
-	#  user_voice_enabled = 0
-	#  user_video_enabled = 0
 `
 
 // Init initialize the BigBlueButton struct with precalculated data
@@ -88,8 +71,6 @@ func (b *BigBlueButton) Init() error {
 	b.getMeetingsURL = b.getURL("getMeetings")
 	b.getRecordingsURL = b.getURL("getRecordings")
 	b.healthCheckURL = b.getHealthCheckURL()
-
-	b.loadScores()
 
 	tlsCfg, err := b.ClientConfig.TLSConfig()
 	if err != nil {
@@ -111,26 +92,6 @@ func (b *BigBlueButton) Init() error {
 	}
 
 	return nil
-}
-
-func (b *BigBlueButton) loadScores() {
-	if len(b.Scores) == 0 {
-		b.Scores = defaultScores
-		return
-	}
-
-	// Copy default scores into a new map
-	scores := map[string]uint64{}
-	for key, value := range defaultScores {
-		scores[key] = value
-	}
-
-	// Merge configured scores into the previous new map
-	for key, value := range b.Scores {
-		scores[key] = value
-	}
-
-	b.Scores = scores
 }
 
 // SampleConfig provides a sample config object
@@ -245,7 +206,6 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 		"participant_count":       0,
 		"video_count":             0,
 		"voice_participant_count": 0,
-		"score":                   0,
 	}
 
 	if response.MessageKey == "noMeetings" {
@@ -263,8 +223,6 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 		if meeting.Recording {
 			record["active_recording"]++
 		}
-
-		record["score"] += b.computeScore(meeting)
 	}
 
 	acc.AddFields("bigbluebutton_meetings", toStringMapInterface(record), make(map[string]string))
@@ -303,16 +261,6 @@ func (b *BigBlueButton) gatherRecordings(acc telegraf.Accumulator) error {
 
 	acc.AddFields("bigbluebutton_recordings", toStringMapInterface(record), make(map[string]string))
 	return nil
-}
-
-func (b *BigBlueButton) computeScore(meeting Meeting) uint64 {
-	var score uint64
-	score += 1 * b.Scores["meeting_created"]
-	score += meeting.ParticipantCount * b.Scores["user_joined"]
-	score += meeting.ListenerCount * b.Scores["user_listen"]
-	score += meeting.VoiceParticipantCount * b.Scores["user_voice_enabled"]
-	score += meeting.VideoCount * b.Scores["user_video_enabled"]
-	return score
 }
 
 func toStringMapInterface(in map[string]uint64) map[string]interface{} {

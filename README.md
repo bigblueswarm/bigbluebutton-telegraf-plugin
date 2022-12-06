@@ -36,14 +36,6 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
 
 	## Use TLS but skip chain & host verification
 	# insecure_skip_verify = false
-
-    ## Server score
-	#[inputs.bigbluebutton.scores]
-	#  meeting_created = 0
-	#  user_joined = 0
-	#  user_listen = 0
-	#  user_voice_enabled = 0
-	#  user_video_enabled = 0
 ```
 
 ## Metrics
@@ -56,7 +48,6 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
     - voice_participant_count
     - video_count
     - active_recording
-    - server score
 - bigbluebutton_recordings:
   - fields:
     - recordings_count
@@ -67,7 +58,7 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
 
 ## Example output
 ```sh
-bigbluebutton_meetings active_recording=0i,listener_count=1i,participant_count=2i,video_count=0i,voice_participant_count=0i,score=9i,active_meetings=2i 1617611008787972024
+bigbluebutton_meetings active_recording=0i,listener_count=1i,participant_count=2i,video_count=0i,voice_participant_count=0i,active_meetings=2i 1617611008787972024
 bigbluebutton_recordings recordings_count=0i,published_recordings_count=0i 1617611008800460253
 bigbluebutton_api online=1i 1617611008800460842
 ```
