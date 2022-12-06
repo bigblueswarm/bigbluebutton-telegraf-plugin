@@ -9,3 +9,6 @@ jobs:
         uses: actions/checkout@main
       - name: Run Codacy Analysis
         uses: codacy/codacy-analysis-cli-action@master
+        with:
+          upload: true
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
