@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/common/proxy"
@@ -285,7 +284,7 @@ func (b *BigBlueButton) shouldGatherByMetadata() bool {
 
 func addMetadataRecordingsToAcc(acc telegraf.Accumulator, records map[string]map[string]uint64) {
 	for key, val := range records {
-		acc.AddFields(key, toStringMapInterface(val), make(map[string]string), time.Unix(0, 0))
+		acc.AddFields(key, toStringMapInterface(val), make(map[string]string))
 	}
 }
 
