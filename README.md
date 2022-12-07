@@ -22,6 +22,10 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
 	## Required BigBlueButton secret key
 	secret_key = ""
 
+	## Gather metrics by metadata
+	# Using this option, gathering data will also insert metrics grouped by metadata configuration
+	# gather_by_metadata = []
+
 	## Optional HTTP Basic Auth Credentials
 	# username = "username"
 	# password = "pa$$word
@@ -56,9 +60,59 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
   - fields:
 	- online
 
+Using the `gather_by_metadata`, plugin will add meetings and recordings metrics grouped by meetings provided metadata like the following:
+```
+localhost:8090:bigbluebutton_meetings active_recording=0i,listener_count=0i,participant_count=0i,video_count=0i,voice_participant_count=0i,active_meetings=1i 0
+```
+
+For example, using the following configuration:
+```toml
+## Gather metrics by metadata
+# Using this option, gathering data will also insert metrics grouped by metadata configuration
+gather_by_metadata = ["tenant"]
+```
+With a meeting:
+```xml
+<meeting>
+	<meetingName>Meeting 2</meetingName>
+	<meetingID>b0a78452-2266-4a0a-abae-8a016db8fccd</meetingID>
+	<internalMeetingID>6e2f5787a62c9c3e13ee557c847decded4a53d59-1613138647914</internalMeetingID>
+	<createTime>1613138647914</createTime>
+	<createDate>Fri Feb 12 15:04:07 CET 2021</createDate>
+	<voiceBridge>75042</voiceBridge>
+	<dialNumber>613-555-1234</dialNumber>
+	<attendeePW>e313fc20-2247-48dd-884a-b1cb48c7919c</attendeePW>
+	<moderatorPW>be89c431-00d9-4e38-a2f9-c9a54c9873a3</moderatorPW>
+	<running>true</running>
+	<duration>0</duration>
+	<hasUserJoined>true</hasUserJoined>
+	<recording>false</recording>
+	<hasBeenForciblyEnded>false</hasBeenForciblyEnded>
+	<startTime>1613138647937</startTime>
+	<endTime>0</endTime>
+	<participantCount>5</participantCount>
+	<listenerCount>3</listenerCount>
+	<voiceParticipantCount>3</voiceParticipantCount>
+	<videoCount>1</videoCount>
+	<maxUsers>0</maxUsers>
+	<moderatorCount>1</moderatorCount>
+	<attendees>
+	</attendees>
+	<metadata>
+		<tenant>localhost</tenant>
+	</metadata>
+	<isBreakout>false</isBreakout>
+</meeting>
+```
+will generate the following metric:
+```
+localhost:8090:bigbluebutton_meetings active_recording=0i,listener_count=3i,participant_count=5i,video_count=1i,voice_participant_count=3i,active_meetings=1i 1617611008787972024
+```
+
 ## Example output
 ```sh
 bigbluebutton_meetings active_recording=0i,listener_count=1i,participant_count=2i,video_count=0i,voice_participant_count=0i,active_meetings=2i 1617611008787972024
+localhost:8090:bigbluebutton_meetings active_recording=0i,listener_count=0i,participant_count=0i,video_count=0i,voice_participant_count=0i,active_meetings=1i 1617611008787972024
 bigbluebutton_recordings recordings_count=0i,published_recordings_count=0i 1617611008800460253
 bigbluebutton_api online=1i 1617611008800460842
 ```

@@ -77,6 +77,7 @@
                 </attendee>
             </attendees>
             <metadata>
+                <tenant>localhost</tenant>
             </metadata>
             <isBreakout>false</isBreakout>
         </meeting>

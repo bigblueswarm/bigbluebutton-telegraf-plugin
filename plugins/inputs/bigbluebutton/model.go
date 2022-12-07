@@ -27,15 +27,21 @@ type Recordings struct {
 
 // Recording is recording response containt information like state, record identifier, ...
 type Recording struct {
-	XMLName   xml.Name `xml:"recording"`
-	RecordID  string   `xml:"recordID"`
-	Published bool     `xml:"published"`
+	XMLName        xml.Name `xml:"recording"`
+	RecordID       string   `xml:"recordID"`
+	Published      bool     `xml:"published"`
+	Metadata       Metadata `xml:"metadata"`
+	ParsedMetadata map[string]string
 }
 
 // Meetings is BigBlueButton XML meetings section
 type Meetings struct {
 	XMLName xml.Name  `xml:"meetings"`
 	Values  []Meeting `xml:"meeting"`
+}
+
+type Metadata struct {
+	Inner []byte `xml:",innerxml"`
 }
 
 // Meeting is a meeting response containing information like name, id, created time, created date, ...
@@ -46,6 +52,8 @@ type Meeting struct {
 	VoiceParticipantCount uint64   `xml:"voiceParticipantCount"`
 	VideoCount            uint64   `xml:"videoCount"`
 	Recording             bool     `xml:"recording"`
+	Metadata              Metadata `xml:"metadata"`
+	ParsedMetadata        map[string]string
 }
 
 // HealthCheck is a api health check response
