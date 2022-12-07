@@ -13,6 +13,7 @@
             <endTime>1530718810456</endTime>
             <participants>3</participants>
             <metadata>
+                <tenant>localhost</tenant>
                 <isBreakout>false</isBreakout>
                 <meetingName>Fred's Room</meetingName>
                 <gl-listed>false</gl-listed>

@@ -53,67 +53,26 @@ func getHTTPServer() *httptest.Server {
 	}))
 }
 
-func getPlugin(url string) BigBlueButton {
+func getPlugin(url string, gatherByMetatdata []string) BigBlueButton {
 	return BigBlueButton{
-		URL:       url,
-		SecretKey: "OxShRR1sT8FrJZq",
+		URL:              url,
+		SecretKey:        "OxShRR1sT8FrJZq",
+		GatherByMetadata: gatherByMetatdata,
 	}
 }
 
-func TestBigBlueButton(t *testing.T) {
-	s := getHTTPServer()
-	defer s.Close()
-
-	plugin := getPlugin(s.URL)
+func gather(t *testing.T, url string, gatherByMetatdata []string) *testutil.Accumulator {
+	plugin := getPlugin(url, gatherByMetatdata)
 	plugin.Init()
 	acc := &testutil.Accumulator{}
 	plugin.Gather(acc)
 
 	require.Empty(t, acc.Errors)
 
-	meetingsRecord := map[string]uint64{
-		"active_meetings":         2,
-		"participant_count":       15,
-		"listener_count":          12,
-		"voice_participant_count": 4,
-		"video_count":             1,
-		"active_recording":        0,
-	}
-
-	recordingsRecord := map[string]uint64{
-		"recordings_count":           2,
-		"published_recordings_count": 1,
-	}
-
-	apiStatusRecord := map[string]uint64{
-		"online": 1,
-	}
-
-	tags := make(map[string]string)
-
-	expected := []telegraf.Metric{
-		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
-	}
-
-	acc.Wait(len(expected))
-
-	testutil.RequireMetricsEqual(t, expected, acc.GetTelegrafMetrics(), testutil.IgnoreTime())
+	return acc
 }
 
-func TestBigBlueButtonEmptyState(t *testing.T) {
-	emptyState = true
-	s := getHTTPServer()
-	defer s.Close()
-
-	plugin := getPlugin(s.URL)
-	plugin.Init()
-	acc := &testutil.Accumulator{}
-	plugin.Gather(acc)
-
-	require.Empty(t, acc.Errors)
-
+func getExpectedEmptyValues() (map[string]uint64, map[string]uint64, map[string]uint64) {
 	meetingsRecord := map[string]uint64{
 		"active_meetings":         0,
 		"participant_count":       0,
@@ -132,6 +91,38 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 		"online": 0,
 	}
 
+	return meetingsRecord, recordingsRecord, apiStatusRecord
+}
+
+func getExpectedValues() (map[string]uint64, map[string]uint64, map[string]uint64) {
+	meetingsRecord := map[string]uint64{
+		"active_meetings":         2,
+		"participant_count":       15,
+		"listener_count":          12,
+		"voice_participant_count": 4,
+		"video_count":             1,
+		"active_recording":        0,
+	}
+
+	recordingsRecord := map[string]uint64{
+		"recordings_count":           2,
+		"published_recordings_count": 1,
+	}
+
+	apiStatusRecord := map[string]uint64{
+		"online": 1,
+	}
+
+	return meetingsRecord, recordingsRecord, apiStatusRecord
+}
+
+func TestBigBlueButton(t *testing.T) {
+	emptyState = false
+	s := getHTTPServer()
+	defer s.Close()
+
+	acc := gather(t, s.URL, []string{})
+	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedValues()
 	tags := make(map[string]string)
 
 	expected := []telegraf.Metric{
@@ -142,5 +133,63 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 
 	acc.Wait(len(expected))
 
+	testutil.RequireMetricsEqual(t, expected, acc.GetTelegrafMetrics(), testutil.IgnoreTime())
+}
+
+func TestBigBlueButtonEmptyState(t *testing.T) {
+	emptyState = true
+	s := getHTTPServer()
+	defer s.Close()
+
+	acc := gather(t, s.URL, []string{})
+	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedEmptyValues()
+	tags := make(map[string]string)
+
+	expected := []telegraf.Metric{
+		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
+	}
+
+	acc.Wait(len(expected))
+
+	testutil.RequireMetricsEqual(t, expected, acc.GetTelegrafMetrics(), testutil.IgnoreTime())
+}
+
+func TestBigBlueButtonGatherByMetadata(t *testing.T) {
+	emptyState = false
+	s := getHTTPServer()
+	defer s.Close()
+
+	tenant := "localhost"
+
+	acc := gather(t, s.URL, []string{"tenant"})
+
+	tenantMeetingsRecord := map[string]uint64{
+		"active_meetings":         1,
+		"participant_count":       5,
+		"listener_count":          3,
+		"voice_participant_count": 3,
+		"video_count":             1,
+		"active_recording":        0,
+	}
+
+	tenantRecordingsRecord := map[string]uint64{
+		"recordings_count":           1,
+		"published_recordings_count": 1,
+	}
+
+	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedValues()
+	tags := make(map[string]string)
+
+	expected := []telegraf.Metric{
+		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric(fmt.Sprintf("%s:bigbluebutton_meetings", tenant), tags, toStringMapInterface(tenantMeetingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric(fmt.Sprintf("%s:bigbluebutton_recordings", tenant), tags, toStringMapInterface(tenantRecordingsRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
+	}
+
+	acc.Wait(len(expected))
 	testutil.RequireMetricsEqual(t, expected, acc.GetTelegrafMetrics(), testutil.IgnoreTime())
 }
