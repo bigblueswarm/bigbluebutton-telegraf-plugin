@@ -217,13 +217,13 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 	for i := 0; i < len(response.Meetings.Values); i++ {
 		meeting := response.Meetings.Values[i]
 		meeting.ParsedMetadata = xmlToMap(bytes.NewReader(meeting.Metadata.Inner))
-		record["active_meetings"]++
-		record["participant_count"] += meeting.ParticipantCount
-		record["listener_count"] += meeting.ListenerCount
-		record["voice_participant_count"] += meeting.VoiceParticipantCount
-		record["video_count"] += meeting.VideoCount
+		record["meetings"]++
+		record["participants"] += meeting.ParticipantCount
+		record["listener_participants"] += meeting.ListenerCount
+		record["voice_participants"] += meeting.VoiceParticipantCount
+		record["video_participants"] += meeting.VideoCount
 		if meeting.Recording {
-			record["active_recording"]++
+			record["active_recordings"]++
 		}
 
 		if b.shouldGatherByMetadata() {
@@ -247,9 +247,9 @@ func (b *BigBlueButton) gatherRecordingsByMetadata(records *map[string]map[strin
 				rec[key] = emptyRecordingsMap()
 			}
 
-			rec[key]["recordings_count"]++
+			rec[key]["recordings"]++
 			if recording.Published {
-				rec[key]["published_recordings_count"]++
+				rec[key]["published_recordings"]++
 			}
 		}
 	}
@@ -266,13 +266,13 @@ func (b *BigBlueButton) gatherMeetingsByMetadata(records *map[string]map[string]
 				rec[key] = emptyMeetingsMap()
 			}
 
-			rec[key]["active_meetings"]++
-			rec[key]["participant_count"] += meeting.ParticipantCount
-			rec[key]["listener_count"] += meeting.ListenerCount
-			rec[key]["voice_participant_count"] += meeting.VoiceParticipantCount
-			rec[key]["video_count"] += meeting.VideoCount
+			rec[key]["meetings"]++
+			rec[key]["participants"] += meeting.ParticipantCount
+			rec[key]["listener_participants"] += meeting.ListenerCount
+			rec[key]["voice_participants"] += meeting.VoiceParticipantCount
+			rec[key]["video_participants"] += meeting.VideoCount
 			if meeting.Recording {
-				rec[key]["active_recording"]++
+				rec[key]["active_recordings"]++
 			}
 		}
 	}
@@ -307,19 +307,19 @@ func xmlToMap(r io.Reader) map[string]string {
 
 func emptyMeetingsMap() map[string]uint64 {
 	return map[string]uint64{
-		"active_meetings":         0,
-		"active_recording":        0,
-		"listener_count":          0,
-		"participant_count":       0,
-		"video_count":             0,
-		"voice_participant_count": 0,
+		"meetings":              0,
+		"active_recordings":     0,
+		"listener_participants": 0,
+		"participants":          0,
+		"video_participants":    0,
+		"voice_participants":    0,
 	}
 }
 
 func emptyRecordingsMap() map[string]uint64 {
 	return map[string]uint64{
-		"recordings_count":           0,
-		"published_recordings_count": 0,
+		"recordings":           0,
+		"published_recordings": 0,
 	}
 }
 
@@ -346,9 +346,9 @@ func (b *BigBlueButton) gatherRecordings(acc telegraf.Accumulator) error {
 	for i := 0; i < len(response.Recordings.Values); i++ {
 		recording := response.Recordings.Values[i]
 		recording.ParsedMetadata = xmlToMap(bytes.NewReader(recording.Metadata.Inner))
-		record["recordings_count"]++
+		record["recordings"]++
 		if recording.Published {
-			record["published_recordings_count"]++
+			record["published_recordings"]++
 		}
 
 		if b.shouldGatherByMetadata() {
