@@ -74,17 +74,17 @@ func gather(t *testing.T, url string, gatherByMetatdata []string) *testutil.Accu
 
 func getExpectedEmptyValues() (map[string]uint64, map[string]uint64, map[string]uint64) {
 	meetingsRecord := map[string]uint64{
-		"active_meetings":         0,
-		"participant_count":       0,
-		"listener_count":          0,
-		"voice_participant_count": 0,
-		"video_count":             0,
-		"active_recording":        0,
+		"meetings":              0,
+		"participants":          0,
+		"listener_participants": 0,
+		"voice_participants":    0,
+		"video_participants":    0,
+		"active_recordings":     0,
 	}
 
 	recordingsRecord := map[string]uint64{
-		"recordings_count":           0,
-		"published_recordings_count": 0,
+		"recordings":           0,
+		"published_recordings": 0,
 	}
 
 	apiStatusRecord := map[string]uint64{
@@ -96,17 +96,17 @@ func getExpectedEmptyValues() (map[string]uint64, map[string]uint64, map[string]
 
 func getExpectedValues() (map[string]uint64, map[string]uint64, map[string]uint64) {
 	meetingsRecord := map[string]uint64{
-		"active_meetings":         2,
-		"participant_count":       15,
-		"listener_count":          12,
-		"voice_participant_count": 4,
-		"video_count":             1,
-		"active_recording":        0,
+		"meetings":              2,
+		"participants":          15,
+		"listener_participants": 12,
+		"voice_participants":    4,
+		"video_participants":    1,
+		"active_recordings":     0,
 	}
 
 	recordingsRecord := map[string]uint64{
-		"recordings_count":           2,
-		"published_recordings_count": 1,
+		"recordings":           2,
+		"published_recordings": 1,
 	}
 
 	apiStatusRecord := map[string]uint64{
@@ -166,17 +166,17 @@ func TestBigBlueButtonGatherByMetadata(t *testing.T) {
 	acc := gather(t, s.URL, []string{"tenant"})
 
 	tenantMeetingsRecord := map[string]uint64{
-		"active_meetings":         1,
-		"participant_count":       5,
-		"listener_count":          3,
-		"voice_participant_count": 3,
-		"video_count":             1,
-		"active_recording":        0,
+		"meetings":              1,
+		"participants":          5,
+		"listener_participants": 3,
+		"voice_participants":    3,
+		"video_participants":    1,
+		"active_recordings":     0,
 	}
 
 	tenantRecordingsRecord := map[string]uint64{
-		"recordings_count":           1,
-		"published_recordings_count": 1,
+		"recordings":           1,
+		"published_recordings": 1,
 	}
 
 	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedValues()

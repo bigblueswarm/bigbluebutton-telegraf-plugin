@@ -46,23 +46,23 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
 
 - bigbluebutton_meetings:
   - fields:
-    - active_meetings
-    - participant_count
-    - listener_count
-    - voice_participant_count
-    - video_count
-    - active_recording
+    - meetings
+    - participants
+    - listener_participants
+    - voice_participants
+    - video_participants
+    - active_recordings
 - bigbluebutton_recordings:
   - fields:
-    - recordings_count
-    - published_recordings_count
+    - recordings
+    - published_recordings
 - bigbluebutton_api:
   - fields:
-	- online
+  	- online
 
 Using the `gather_by_metadata`, plugin will add meetings and recordings metrics grouped by meetings provided metadata like the following:
 ```
-localhost:8090:bigbluebutton_meetings active_recording=0i,listener_count=0i,participant_count=0i,video_count=0i,voice_participant_count=0i,active_meetings=1i 0
+localhost:8090:bigbluebutton_meetings active_recordings=0i,listener_participants=0i,participants=0i,video_participants=0i,voice_participants=0i,meetings=1i 0
 ```
 
 For example, using the following configuration:
@@ -106,14 +106,14 @@ With a meeting:
 ```
 will generate the following metric:
 ```
-localhost:8090:bigbluebutton_meetings active_recording=0i,listener_count=3i,participant_count=5i,video_count=1i,voice_participant_count=3i,active_meetings=1i 1617611008787972024
+localhost:8090:bigbluebutton_meetings active_recordings=0i,listener_participants=3i,participants=5i,video_participants=1i,voice_participants=3i,meetings=1i 1617611008787972024
 ```
 
 ## Example output
 ```sh
-bigbluebutton_meetings active_recording=0i,listener_count=1i,participant_count=2i,video_count=0i,voice_participant_count=0i,active_meetings=2i 1617611008787972024
-localhost:8090:bigbluebutton_meetings active_recording=0i,listener_count=0i,participant_count=0i,video_count=0i,voice_participant_count=0i,active_meetings=1i 1617611008787972024
-bigbluebutton_recordings recordings_count=0i,published_recordings_count=0i 1617611008800460253
+bigbluebutton_meetings active_recordings=0i,listener_participants=1i,participants=2i,video_participants=0i,voice_participants=0i,active_meetings=2i 1617611008787972024
+localhost:8090:bigbluebutton_meetings active_recordings=0i,listener_participants=0i,participants=0i,video_participants=0i,voice_participants=0i,meetings=1i 1617611008787972024
+bigbluebutton_recordings recordings=0i,published_recordings=0i 1617611008800460253
 bigbluebutton_api online=1i 1617611008800460842
 ```
 
