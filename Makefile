@@ -8,7 +8,7 @@ help:
 #test.unit: @ run unit tests and coverage
 test.unit:
 	@echo "[TEST.UNIT] run unit tests and coverage"
-	@go test -race -covermode=atomic -coverprofile=coverage.out github.com/SLedunois/bigbluebutton-telegraf-plugin/plugins/inputs/bigbluebutton
+	@go test -timeout 30s -race -covermode=atomic -coverprofile=coverage.out github.com/SLedunois/bigbluebutton-telegraf-plugin/plugins/inputs/bigbluebutton
 
 #build: @ build bigbluebutton telegraf plugin binary
 build: 

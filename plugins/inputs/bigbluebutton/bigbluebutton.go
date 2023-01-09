@@ -14,6 +14,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/proxy"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
+	"golang.org/x/exp/maps"
 )
 
 // BigBlueButton is the global configuration object
@@ -112,7 +113,7 @@ func (b *BigBlueButton) Description() string {
 }
 
 // Gather gather data from the BigBlueButton server end send them into the telegraf accumulator
-func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
+func (b *BigBlueButton) Gatherv2(acc telegraf.Accumulator) error {
 	if err := b.gatherMeetings(acc); err != nil {
 		return err
 	}
@@ -194,6 +195,160 @@ func (b *BigBlueButton) gatherAPIStatus(acc telegraf.Accumulator) error {
 	return nil
 }
 
+func (b *BigBlueButton) getMeetings() (*MeetingsResponse, error) {
+	body, err := b.api(b.getMeetingsURL)
+	if err != nil {
+		return nil, err
+	}
+
+	var response *MeetingsResponse
+	if err := xml.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (b *BigBlueButton) getRecordings() (*RecordingsResponse, error) {
+	body, err := b.api(b.getRecordingsURL)
+	if err != nil {
+		return nil, err
+	}
+
+	var response *RecordingsResponse
+	if err := xml.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (b *BigBlueButton) getAPIStatus() (*HealthCheck, error) {
+	body, err := b.api(b.healthCheckURL)
+	if err != nil {
+		return nil, err
+	}
+
+	var response *HealthCheck
+	if err := xml.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (b *BigBlueButton) processMeetings(m *MeetingsResponse) (*MeetingsMetric, *map[string]MeetingsMetric) {
+	metric := NewMeetingMetric()
+	metricMetadata := NewMetadataMeetingMetric()
+
+	if m.MessageKey == "noMeetings" {
+		return metric, metricMetadata
+	}
+
+	for _, meeting := range m.Meetings.Values {
+		meeting.ParsedMetadata = xmlToMap(bytes.NewReader(meeting.Metadata.Inner))
+		performMeetingCalculation(metric, meeting)
+
+		if b.shouldGatherByMetadata() {
+			b.gatherMeetingsByMetadata(metricMetadata, meeting)
+		}
+	}
+
+	return metric, metricMetadata
+}
+
+func (b *BigBlueButton) processRecordings(r *RecordingsResponse) (*RecordingsMetric, *map[string]RecordingsMetric) {
+	metric := NewRecordingMetric()
+	metricMetadata := NewMetadataRecordingMetric()
+
+	if r.MessageKey == "noRecordings" {
+		return metric, metricMetadata
+	}
+
+	for _, recording := range r.Recordings.Values {
+		recording.ParsedMetadata = xmlToMap(bytes.NewReader(recording.Metadata.Inner))
+		performRecordingCalculation(metric, recording)
+
+		if b.shouldGatherByMetadata() {
+			b.gatherRecordingsByMetadata(metricMetadata, recording)
+		}
+	}
+
+	return metric, metricMetadata
+}
+
+func (b *BigBlueButton) processAPIStatus(h *HealthCheck) *APIStatusMetric {
+	metric := NewAPIStatusMetric()
+
+	if h.ReturnCode == "SUCCESS" {
+		metric.Online = 1
+	}
+
+	return metric
+}
+
+func getMetadataValues(m *map[string]MeetingsMetric, r *map[string]RecordingsMetric) []string {
+	v := *m
+	values := maps.Keys(v)
+	for key := range *r {
+		if _, exists := v[key]; !exists {
+			values = append(values, key)
+		}
+	}
+
+	return values
+}
+
+func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
+	var mr *MeetingsResponse
+	var err error
+	if mr, err = b.getMeetings(); err != nil {
+		return err
+	}
+
+	meetingsMetric, metadataMeetingMetric := b.processMeetings(mr)
+	var rm *RecordingsResponse
+	if rm, err = b.getRecordings(); err != nil {
+		return err
+	}
+
+	recordingMetric, metadataRecordingsMetric := b.processRecordings(rm)
+
+	var hc *HealthCheck
+	if hc, err = b.getAPIStatus(); err != nil {
+		return err
+	}
+
+	apiStatusMetric := b.processAPIStatus(hc)
+
+	process := func(measurement string, m MeetingsMetric, r RecordingsMetric) {
+		record := map[string]uint64{
+			"meetings":              m.Meetings,
+			"participants":          m.Participants,
+			"listener_participants": m.ListenerParticipants,
+			"voice_participants":    m.VoiceParticipants,
+			"video_participants":    m.VideoParticipants,
+			"active_recordings":     m.ActiveRecordings,
+			"recordings":            r.Recordings,
+			"published_recordings":  r.PublishedRecordings,
+			"online":                apiStatusMetric.Online,
+		}
+
+		acc.AddFields(measurement, toStringMapInterface(record), make(map[string]string))
+	}
+
+	process("bigbluebutton", *meetingsMetric, *recordingMetric)
+	if !b.shouldGatherByMetadata() {
+		return nil
+	}
+
+	for _, v := range getMetadataValues(metadataMeetingMetric, metadataRecordingsMetric) {
+		process(fmt.Sprintf("bigbluebutton:%s", v), (*metadataMeetingMetric)[v], (*metadataRecordingsMetric)[v])
+	}
+
+	return nil
+}
+
 func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 	body, err := b.api(b.getMeetingsURL)
 	if err != nil {
@@ -227,7 +382,7 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 		}
 
 		if b.shouldGatherByMetadata() {
-			b.gatherMeetingsByMetadata(&mRecords, meeting)
+			// b.gatherMeetingsByMetadata(&mRecords, meeting)
 		}
 	}
 
@@ -236,44 +391,48 @@ func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (b *BigBlueButton) gatherRecordingsByMetadata(records *map[string]map[string]uint64, recording Recording) {
-	rec := (*records)
-	for i := 0; i < len(b.GatherByMetadata); i++ {
-		name := b.GatherByMetadata[i]
-
-		if val, ok := recording.ParsedMetadata[name]; ok { // Check if metadata name found in parsed metadata
-			key := fmt.Sprintf("%s:bigbluebutton_recordings", val)
-			if _, ok := rec[key]; !ok { // If val not found in storage then initialize storage
-				rec[key] = emptyRecordingsMap()
+func (b *BigBlueButton) gatherRecordingsByMetadata(values *map[string]RecordingsMetric, recording Recording) {
+	for _, metadata := range b.GatherByMetadata {
+		if val, ok := recording.ParsedMetadata[metadata]; ok { // Check if metadata name found in parsed metadata
+			key := val
+			if _, ok := (*values)[key]; !ok { // If val not found in storage then initialize storage
+				(*values)[key] = *NewRecordingMetric()
 			}
 
-			rec[key]["recordings"]++
-			if recording.Published {
-				rec[key]["published_recordings"]++
-			}
+			metric := (*values)[key]
+			performRecordingCalculation(&metric, recording)
 		}
 	}
 }
 
-func (b *BigBlueButton) gatherMeetingsByMetadata(records *map[string]map[string]uint64, meeting Meeting) {
-	rec := (*records)
-	for i := 0; i < len(b.GatherByMetadata); i++ {
-		name := b.GatherByMetadata[i]
+func performMeetingCalculation(metric *MeetingsMetric, meeting Meeting) {
+	metric.Meetings++
+	metric.Participants += meeting.ParticipantCount
+	metric.ListenerParticipants += meeting.ListenerCount
+	metric.VoiceParticipants += meeting.VoiceParticipantCount
+	metric.VideoParticipants += meeting.VideoCount
+	if meeting.Recording {
+		metric.ActiveRecordings++
+	}
+}
 
-		if val, ok := meeting.ParsedMetadata[name]; ok { // Check if metadata name found in parsed metadata
-			key := fmt.Sprintf("%s:bigbluebutton_meetings", val)
-			if _, ok := rec[key]; !ok { // If val not found in storage then initialize storage
-				rec[key] = emptyMeetingsMap()
+func performRecordingCalculation(metric *RecordingsMetric, recording Recording) {
+	metric.Recordings++
+	if recording.Published {
+		metric.PublishedRecordings++
+	}
+}
+
+func (b *BigBlueButton) gatherMeetingsByMetadata(values *map[string]MeetingsMetric, meeting Meeting) {
+	for _, metadata := range b.GatherByMetadata {
+		if val, ok := meeting.ParsedMetadata[metadata]; ok { // Check if metadata name found in parsed metadata
+			key := val
+			if _, ok := (*values)[key]; !ok { // If val not found in storage then initialize storage
+				(*values)[key] = *NewMeetingMetric()
 			}
 
-			rec[key]["meetings"]++
-			rec[key]["participants"] += meeting.ParticipantCount
-			rec[key]["listener_participants"] += meeting.ListenerCount
-			rec[key]["voice_participants"] += meeting.VoiceParticipantCount
-			rec[key]["video_participants"] += meeting.VideoCount
-			if meeting.Recording {
-				rec[key]["active_recordings"]++
-			}
+			metric := (*values)[key]
+			performMeetingCalculation(&metric, meeting)
 		}
 	}
 }
@@ -351,9 +510,9 @@ func (b *BigBlueButton) gatherRecordings(acc telegraf.Accumulator) error {
 			record["published_recordings"]++
 		}
 
-		if b.shouldGatherByMetadata() {
-			b.gatherRecordingsByMetadata(&mRecords, recording)
-		}
+		// if b.shouldGatherByMetadata() {
+		// 	b.gatherRecordingsByMetadata(&mRecords, recording)
+		// }
 	}
 
 	acc.AddFields("bigbluebutton_recordings", toStringMapInterface(record), make(map[string]string))
