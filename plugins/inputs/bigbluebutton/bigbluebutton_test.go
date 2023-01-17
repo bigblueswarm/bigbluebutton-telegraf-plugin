@@ -25,7 +25,7 @@ func getXMLResponse(requestURI string) ([]byte, int) {
 
 	xmlFile := fmt.Sprintf("./testdata/%s.xml", apiName)
 
-	if emptyState {
+	if emptyState && apiName != "healthcheck" {
 		xmlFile = fmt.Sprintf("%s.empty_state", xmlFile)
 	}
 
@@ -72,48 +72,36 @@ func gather(t *testing.T, url string, gatherByMetatdata []string) *testutil.Accu
 	return acc
 }
 
-func getExpectedEmptyValues() (map[string]uint64, map[string]uint64, map[string]uint64) {
-	meetingsRecord := map[string]uint64{
+func getExpectedEmptyValues() map[string]uint64 {
+	record := map[string]uint64{
 		"meetings":              0,
 		"participants":          0,
 		"listener_participants": 0,
 		"voice_participants":    0,
 		"video_participants":    0,
 		"active_recordings":     0,
+		"recordings":            0,
+		"published_recordings":  0,
+		"online":                1,
 	}
 
-	recordingsRecord := map[string]uint64{
-		"recordings":           0,
-		"published_recordings": 0,
-	}
-
-	apiStatusRecord := map[string]uint64{
-		"online": 0,
-	}
-
-	return meetingsRecord, recordingsRecord, apiStatusRecord
+	return record
 }
 
-func getExpectedValues() (map[string]uint64, map[string]uint64, map[string]uint64) {
-	meetingsRecord := map[string]uint64{
+func getExpectedValues() map[string]uint64 {
+	record := map[string]uint64{
 		"meetings":              2,
 		"participants":          15,
 		"listener_participants": 12,
 		"voice_participants":    4,
 		"video_participants":    1,
-		"active_recordings":     0,
+		"active_recordings":     1,
+		"recordings":            2,
+		"published_recordings":  1,
+		"online":                1,
 	}
 
-	recordingsRecord := map[string]uint64{
-		"recordings":           2,
-		"published_recordings": 1,
-	}
-
-	apiStatusRecord := map[string]uint64{
-		"online": 1,
-	}
-
-	return meetingsRecord, recordingsRecord, apiStatusRecord
+	return record
 }
 
 func TestBigBlueButton(t *testing.T) {
@@ -122,13 +110,11 @@ func TestBigBlueButton(t *testing.T) {
 	defer s.Close()
 
 	acc := gather(t, s.URL, []string{})
-	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedValues()
+	record := getExpectedValues()
 	tags := make(map[string]string)
 
 	expected := []telegraf.Metric{
-		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton", tags, toStringMapInterface(record), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))
@@ -142,13 +128,11 @@ func TestBigBlueButtonEmptyState(t *testing.T) {
 	defer s.Close()
 
 	acc := gather(t, s.URL, []string{})
-	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedEmptyValues()
+	record := getExpectedEmptyValues()
 	tags := make(map[string]string)
 
 	expected := []telegraf.Metric{
-		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton", tags, toStringMapInterface(record), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))
@@ -165,29 +149,24 @@ func TestBigBlueButtonGatherByMetadata(t *testing.T) {
 
 	acc := gather(t, s.URL, []string{"tenant"})
 
-	tenantMeetingsRecord := map[string]uint64{
+	tenantRecord := map[string]uint64{
 		"meetings":              1,
 		"participants":          5,
 		"listener_participants": 3,
 		"voice_participants":    3,
 		"video_participants":    1,
 		"active_recordings":     0,
+		"recordings":            1,
+		"published_recordings":  1,
+		"online":                1,
 	}
 
-	tenantRecordingsRecord := map[string]uint64{
-		"recordings":           1,
-		"published_recordings": 1,
-	}
-
-	meetingsRecord, recordingsRecord, apiStatusRecord := getExpectedValues()
+	record := getExpectedValues()
 	tags := make(map[string]string)
 
 	expected := []telegraf.Metric{
-		testutil.MustMetric("bigbluebutton_meetings", tags, toStringMapInterface(meetingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric(fmt.Sprintf("%s:bigbluebutton_meetings", tenant), tags, toStringMapInterface(tenantMeetingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_recordings", tags, toStringMapInterface(recordingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric(fmt.Sprintf("%s:bigbluebutton_recordings", tenant), tags, toStringMapInterface(tenantRecordingsRecord), time.Unix(0, 0)),
-		testutil.MustMetric("bigbluebutton_api", tags, toStringMapInterface(apiStatusRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton", tags, toStringMapInterface(record), time.Unix(0, 0)),
+		testutil.MustMetric(fmt.Sprintf("bigbluebutton:%s", tenant), tags, toStringMapInterface(tenantRecord), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))

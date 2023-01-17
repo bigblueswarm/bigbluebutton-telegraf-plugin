@@ -1,5 +1,5 @@
 <response>
-    <returncode>FAILED</returncode>
-    <messageKey>checksumError</messageKey>
-    <message>You did not pass the checksum security check</message>
+    <returncode>SUCCESS</returncode>
+    <messageKey>noMeetings</messageKey>
+    <message>no meetings were found on this server</message>
 </response>
