@@ -44,7 +44,7 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
 
 ## Metrics
 
-- bigbluebutton_meetings:
+- bigbluebutton:
   - fields:
     - meetings
     - participants
@@ -52,12 +52,8 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
     - voice_participants
     - video_participants
     - active_recordings
-- bigbluebutton_recordings:
-  - fields:
     - recordings
     - published_recordings
-- bigbluebutton_api:
-  - fields:
   	- online
 
 Using the `gather_by_metadata`, plugin will add meetings and recordings metrics grouped by meetings provided metadata like the following:
@@ -111,10 +107,8 @@ localhost:8090:bigbluebutton_meetings active_recordings=0i,listener_participants
 
 ## Example output
 ```sh
-bigbluebutton_meetings active_recordings=0i,listener_participants=1i,participants=2i,video_participants=0i,voice_participants=0i,active_meetings=2i 1617611008787972024
-localhost:8090:bigbluebutton_meetings active_recordings=0i,listener_participants=0i,participants=0i,video_participants=0i,voice_participants=0i,meetings=1i 1617611008787972024
-bigbluebutton_recordings recordings=0i,published_recordings=0i 1617611008800460253
-bigbluebutton_api online=1i 1617611008800460842
+bigbluebutton meetings=0i,voice_participants=0i,recordings=0i,active_recordings=0i,participants=0i,listener_participants=0i,published_recordings=0i,online=1i,video_participants=0i 1673991941312623800
+bigbluebutton:localhost:8090 voice_participants=0i,video_participants=0i,online=1i,meetings=1i,participants=0i,active_recordings=0i,listener_participants=0i,published_recordings=0i,recordings=0i 1673992041293464800
 ```
 
 ## Installation

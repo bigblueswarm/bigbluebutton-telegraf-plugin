@@ -2,11 +2,9 @@
 package bigbluebutton
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -111,17 +109,89 @@ func (b *BigBlueButton) Description() string {
 	return "Gather BigBlueButton web conferencing server metrics"
 }
 
-// Gather gather data from the BigBlueButton server end send them into the telegraf accumulator
+// Gather retrieve and publish metrics using the telegraf.Accumulator
 func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
-	if err := b.gatherMeetings(acc); err != nil {
+	m, err := b.getMeetings()
+	if err != nil {
 		return err
 	}
 
-	if err := b.gatherRecordings(acc); err != nil {
+	r, err := b.getRecordings()
+	if err != nil {
 		return err
 	}
 
-	return b.gatherAPIStatus(acc)
+	h, err := b.getHealCheck()
+	if err != nil {
+		return err
+	}
+
+	rec := NewRecordFrom(m.Meetings.Values, r.Recordings.Values, *h)
+	acc.AddFields("bigbluebutton", toStringMapInterface(rec.ToMap()), make(map[string]string))
+
+	if b.shouldGatherByMetadata() {
+		recs := b.GetMetadataRecords(m, r, h)
+		for k, v := range recs {
+			acc.AddFields(fmt.Sprintf("bigbluebutton:%s", k), toStringMapInterface(v.ToMap()), make(map[string]string))
+		}
+	}
+
+	return nil
+}
+
+// GetMetadataRecords parse responses and returns a map for record
+func (b *BigBlueButton) GetMetadataRecords(mr *MeetingsResponse, rr *RecordingsResponse, hr *HealthCheck) map[string]*Record {
+	type storage struct {
+		meetings   []Meeting
+		recordings []Recording
+	}
+
+	store := map[string]*storage{}
+	res := map[string]*Record{}
+
+	createStorageIfNotExists := func(key string) {
+		if _, ok := store[key]; !ok {
+			store[key] = &storage{
+				meetings:   []Meeting{},
+				recordings: []Recording{},
+			}
+		}
+	}
+
+	for _, md := range b.GatherByMetadata {
+		for _, m := range mr.Meetings.Values {
+			m.ParseMetadata()
+			if !m.ContainsMetadata(md) {
+				continue
+			}
+
+			val := m.GetMetadata(md)
+			createStorageIfNotExists(val)
+
+			s := store[val]
+			s.meetings = append(s.meetings, m)
+		}
+
+		for _, r := range rr.Recordings.Values {
+			r.ParseMetadata()
+			if !r.ContainsMetadata(md) {
+				continue
+			}
+
+			val := r.GetMetadata(md)
+			createStorageIfNotExists(val)
+
+			s := store[val]
+			s.recordings = append(s.recordings, r)
+		}
+
+	}
+
+	for key, val := range store {
+		res[key] = NewRecordFrom(val.meetings, val.recordings, *hr)
+	}
+
+	return res
 }
 
 // BigBlueButton uses an authentication based on a SHA1 checksum processed from api call name and server secret key
@@ -168,197 +238,53 @@ func (b *BigBlueButton) api(url string) ([]byte, error) {
 	return body, nil
 }
 
-func (b *BigBlueButton) gatherAPIStatus(acc telegraf.Accumulator) error {
-	record := map[string]uint64{
-		"online": 0,
-	}
-
-	body, err := b.api(b.healthCheckURL)
-	if err != nil {
-		acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
-		return err
-	}
-
-	var response HealthCheck
-	err = xml.Unmarshal(body, &response)
-	if err != nil {
-		acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
-		return err
-	}
-
-	if response.ReturnCode == "SUCCESS" {
-		record["online"] = 1
-	}
-
-	acc.AddFields("bigbluebutton_api", toStringMapInterface(record), make(map[string]string))
-	return nil
-}
-
-func (b *BigBlueButton) gatherMeetings(acc telegraf.Accumulator) error {
+func (b *BigBlueButton) getMeetings() (*MeetingsResponse, error) {
 	body, err := b.api(b.getMeetingsURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var response MeetingsResponse
 	err = xml.Unmarshal(body, &response)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	record := emptyMeetingsMap()
-	mRecords := map[string]map[string]uint64{}
-
-	if response.MessageKey == "noMeetings" {
-		acc.AddFields("bigbluebutton_meetings", toStringMapInterface(record), make(map[string]string))
-		return nil
-	}
-
-	for i := 0; i < len(response.Meetings.Values); i++ {
-		meeting := response.Meetings.Values[i]
-		meeting.ParsedMetadata = xmlToMap(bytes.NewReader(meeting.Metadata.Inner))
-		record["meetings"]++
-		record["participants"] += meeting.ParticipantCount
-		record["listener_participants"] += meeting.ListenerCount
-		record["voice_participants"] += meeting.VoiceParticipantCount
-		record["video_participants"] += meeting.VideoCount
-		if meeting.Recording {
-			record["active_recordings"]++
-		}
-
-		if b.shouldGatherByMetadata() {
-			b.gatherMeetingsByMetadata(&mRecords, meeting)
-		}
-	}
-
-	acc.AddFields("bigbluebutton_meetings", toStringMapInterface(record), make(map[string]string))
-	addMetadataRecordingsToAcc(acc, mRecords)
-	return nil
+	return &response, nil
 }
 
-func (b *BigBlueButton) gatherRecordingsByMetadata(records *map[string]map[string]uint64, recording Recording) {
-	rec := (*records)
-	for i := 0; i < len(b.GatherByMetadata); i++ {
-		name := b.GatherByMetadata[i]
-
-		if val, ok := recording.ParsedMetadata[name]; ok { // Check if metadata name found in parsed metadata
-			key := fmt.Sprintf("%s:bigbluebutton_recordings", val)
-			if _, ok := rec[key]; !ok { // If val not found in storage then initialize storage
-				rec[key] = emptyRecordingsMap()
-			}
-
-			rec[key]["recordings"]++
-			if recording.Published {
-				rec[key]["published_recordings"]++
-			}
-		}
-	}
-}
-
-func (b *BigBlueButton) gatherMeetingsByMetadata(records *map[string]map[string]uint64, meeting Meeting) {
-	rec := (*records)
-	for i := 0; i < len(b.GatherByMetadata); i++ {
-		name := b.GatherByMetadata[i]
-
-		if val, ok := meeting.ParsedMetadata[name]; ok { // Check if metadata name found in parsed metadata
-			key := fmt.Sprintf("%s:bigbluebutton_meetings", val)
-			if _, ok := rec[key]; !ok { // If val not found in storage then initialize storage
-				rec[key] = emptyMeetingsMap()
-			}
-
-			rec[key]["meetings"]++
-			rec[key]["participants"] += meeting.ParticipantCount
-			rec[key]["listener_participants"] += meeting.ListenerCount
-			rec[key]["voice_participants"] += meeting.VoiceParticipantCount
-			rec[key]["video_participants"] += meeting.VideoCount
-			if meeting.Recording {
-				rec[key]["active_recordings"]++
-			}
-		}
-	}
-}
-
-func (b *BigBlueButton) shouldGatherByMetadata() bool {
-	return len(b.GatherByMetadata) > 0
-}
-
-func addMetadataRecordingsToAcc(acc telegraf.Accumulator, records map[string]map[string]uint64) {
-	for key, val := range records {
-		acc.AddFields(key, toStringMapInterface(val), make(map[string]string))
-	}
-}
-
-func xmlToMap(r io.Reader) map[string]string {
-	m := make(map[string]string)
-	values := make([]string, 0)
-	p := xml.NewDecoder(r)
-	for token, err := p.Token(); err == nil; token, err = p.Token() {
-		switch t := token.(type) {
-		case xml.CharData:
-			values = append(values, string([]byte(t)))
-		case xml.EndElement:
-			m[t.Name.Local] = values[len(values)-1]
-			values = values[:]
-		}
-	}
-
-	return m
-}
-
-func emptyMeetingsMap() map[string]uint64 {
-	return map[string]uint64{
-		"meetings":              0,
-		"active_recordings":     0,
-		"listener_participants": 0,
-		"participants":          0,
-		"video_participants":    0,
-		"voice_participants":    0,
-	}
-}
-
-func emptyRecordingsMap() map[string]uint64 {
-	return map[string]uint64{
-		"recordings":           0,
-		"published_recordings": 0,
-	}
-}
-
-func (b *BigBlueButton) gatherRecordings(acc telegraf.Accumulator) error {
+func (b *BigBlueButton) getRecordings() (*RecordingsResponse, error) {
 	body, err := b.api(b.getRecordingsURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var response RecordingsResponse
 	err = xml.Unmarshal(body, &response)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	record := emptyRecordingsMap()
-	mRecords := map[string]map[string]uint64{}
+	return &response, nil
+}
 
-	if response.MessageKey == "noRecordings" {
-		acc.AddFields("bigbluebutton_recordings", toStringMapInterface(record), make(map[string]string))
-		return nil
+func (b *BigBlueButton) getHealCheck() (*HealthCheck, error) {
+	body, err := b.api(b.getHealthCheckURL())
+	if err != nil {
+		return nil, err
 	}
 
-	for i := 0; i < len(response.Recordings.Values); i++ {
-		recording := response.Recordings.Values[i]
-		recording.ParsedMetadata = xmlToMap(bytes.NewReader(recording.Metadata.Inner))
-		record["recordings"]++
-		if recording.Published {
-			record["published_recordings"]++
-		}
-
-		if b.shouldGatherByMetadata() {
-			b.gatherRecordingsByMetadata(&mRecords, recording)
-		}
+	var response HealthCheck
+	err = xml.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
 	}
 
-	acc.AddFields("bigbluebutton_recordings", toStringMapInterface(record), make(map[string]string))
-	addMetadataRecordingsToAcc(acc, mRecords)
-	return nil
+	return &response, nil
+}
+
+func (b *BigBlueButton) shouldGatherByMetadata() bool {
+	return len(b.GatherByMetadata) > 0
 }
 
 func toStringMapInterface(in map[string]uint64) map[string]interface{} {

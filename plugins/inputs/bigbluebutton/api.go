@@ -1,7 +1,32 @@
 // Package bigbluebutton provides gather functionality
 package bigbluebutton
 
-import "encoding/xml"
+import (
+	"bytes"
+	"encoding/xml"
+)
+
+// MetadataStruct is a generic object that contains a Metadata and ParsedMetada
+type MetadataStruct struct {
+	Metadata       Metadata `xml:"metadata"`
+	ParsedMetadata map[string]string
+}
+
+// ParseMetadata parse the Metadata xml into a map[string]string
+func (m *MetadataStruct) ParseMetadata() {
+	m.ParsedMetadata = xmlToMap(bytes.NewReader(m.Metadata.Inner))
+}
+
+// ContainsMetadata check if the struct contains the metadata
+func (m *MetadataStruct) ContainsMetadata(md string) bool {
+	_, ok := m.ParsedMetadata[md]
+	return ok
+}
+
+// GetMetadata returns the metadata value
+func (m *MetadataStruct) GetMetadata(md string) string {
+	return m.ParsedMetadata[md]
+}
 
 // MeetingsResponse is BigBlueButton XML global getMeetings api reponse type
 type MeetingsResponse struct {
@@ -27,11 +52,10 @@ type Recordings struct {
 
 // Recording is recording response containt information like state, record identifier, ...
 type Recording struct {
-	XMLName        xml.Name `xml:"recording"`
-	RecordID       string   `xml:"recordID"`
-	Published      bool     `xml:"published"`
-	Metadata       Metadata `xml:"metadata"`
-	ParsedMetadata map[string]string
+	XMLName   xml.Name `xml:"recording"`
+	RecordID  string   `xml:"recordID"`
+	Published bool     `xml:"published"`
+	MetadataStruct
 }
 
 // Meetings is BigBlueButton XML meetings section
@@ -52,8 +76,7 @@ type Meeting struct {
 	VoiceParticipantCount uint64   `xml:"voiceParticipantCount"`
 	VideoCount            uint64   `xml:"videoCount"`
 	Recording             bool     `xml:"recording"`
-	Metadata              Metadata `xml:"metadata"`
-	ParsedMetadata        map[string]string
+	MetadataStruct
 }
 
 // HealthCheck is a api health check response

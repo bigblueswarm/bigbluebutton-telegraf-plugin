@@ -94,7 +94,7 @@
             <running>true</running>
             <duration>0</duration>
             <hasUserJoined>true</hasUserJoined>
-            <recording>false</recording>
+            <recording>true</recording>
             <hasBeenForciblyEnded>false</hasBeenForciblyEnded>
             <startTime>1613138946454</startTime>
             <endTime>0</endTime>

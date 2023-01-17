@@ -1,0 +1,28 @@
+[[inputs.bigbluebutton]]
+	## Required BigBlueButton server url
+	url = "http://localhost:8080"
+
+	## BigBlueButton path prefix. Default is "/bigbluebutton"
+	# path_prefix = "/bigbluebutton"
+
+	## Required BigBlueButton secret key
+	secret_key = "VRo9RJE8LQHMyJyzwoiCW48QxjDFq6MpI7H8scBvCA"
+
+	## Gather metrics by metadata
+	# Using this option, gathering data will also insert metrics grouped by metadata configuration
+	gather_by_metadata = ["bigblueswarm-tenant"]
+
+	## Optional HTTP Basic Auth Credentials
+	# username = "username"
+	# password = "pa$$word
+
+	## Optional HTTP Proxy support
+	# http_proxy_url = ""
+
+	## Optional TLS Config
+	# tls_ca = "/etc/telegraf/ca.pem"
+	# tls_cert = "/etc/telegraf/cert.pem"
+	# tls_key = "/etc/telegraf/key.pem"
+
+	## Use TLS but skip chain & host verification
+	# insecure_skip_verify = false
