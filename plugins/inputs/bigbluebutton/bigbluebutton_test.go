@@ -145,9 +145,10 @@ func TestBigBlueButtonGatherByMetadata(t *testing.T) {
 	s := getHTTPServer()
 	defer s.Close()
 
+	metadata := "tenant"
 	tenant := "localhost"
 
-	acc := gather(t, s.URL, []string{"tenant"})
+	acc := gather(t, s.URL, []string{metadata})
 
 	tenantRecord := map[string]uint64{
 		"meetings":              1,
@@ -162,11 +163,13 @@ func TestBigBlueButtonGatherByMetadata(t *testing.T) {
 	}
 
 	record := getExpectedValues()
-	tags := make(map[string]string)
+	tags := map[string]string{
+		"tenant": tenant,
+	}
 
 	expected := []telegraf.Metric{
-		testutil.MustMetric("bigbluebutton", tags, toStringMapInterface(record), time.Unix(0, 0)),
-		testutil.MustMetric(fmt.Sprintf("bigbluebutton:%s", tenant), tags, toStringMapInterface(tenantRecord), time.Unix(0, 0)),
+		testutil.MustMetric("bigbluebutton", map[string]string{}, toStringMapInterface(record), time.Unix(0, 0)),
+		testutil.MustMetric(fmt.Sprintf("bigbluebutton_%s", metadata), tags, toStringMapInterface(tenantRecord), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))
