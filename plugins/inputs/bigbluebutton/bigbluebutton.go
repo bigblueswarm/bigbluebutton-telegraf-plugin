@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/influxdata/telegraf"
@@ -241,7 +241,7 @@ func (b *BigBlueButton) api(url string) ([]byte, error) {
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, err

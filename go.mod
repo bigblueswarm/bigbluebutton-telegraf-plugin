@@ -1,6 +1,6 @@
 module github.com/SLedunois/bigbluebutton-telegraf-plugin
 
-go 1.19
+go 1.21
 
 require (
 	github.com/influxdata/telegraf v1.18.0
