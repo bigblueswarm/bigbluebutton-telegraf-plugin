@@ -129,10 +129,14 @@ func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
 	rec := NewRecordFrom(m.Meetings.Values, r.Recordings.Values, *h)
 	acc.AddFields("bigbluebutton", toStringMapInterface(rec.ToMap()), make(map[string]string))
 
-	if b.shouldGatherByMetadata() {
+	if b.shouldGatheredByMetadata() {
 		recs := b.GetMetadataRecords(m, r, h)
-		for k, v := range recs {
-			acc.AddFields(fmt.Sprintf("bigbluebutton:%s", k), toStringMapInterface(v.ToMap()), make(map[string]string))
+		for mname, mrecs := range recs {
+			for mval, rs := range mrecs {
+				tags := make(map[string]string)
+				tags[mname] = mval
+				acc.AddFields(fmt.Sprintf("bigbluebutton_%s", mname), toStringMapInterface(rs.ToMap()), tags)
+			}
 		}
 	}
 
@@ -140,18 +144,23 @@ func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
 }
 
 // GetMetadataRecords parse responses and returns a map for record
-func (b *BigBlueButton) GetMetadataRecords(mr *MeetingsResponse, rr *RecordingsResponse, hr *HealthCheck) map[string]*Record {
+func (b *BigBlueButton) GetMetadataRecords(mr *MeetingsResponse, rr *RecordingsResponse, hr *HealthCheck) map[string]map[string]*Record {
 	type storage struct {
 		meetings   []Meeting
 		recordings []Recording
 	}
 
-	store := map[string]*storage{}
-	res := map[string]*Record{}
+	store := map[string]map[string]*storage{}
+	res := map[string]map[string]*Record{}
 
-	createStorageIfNotExists := func(key string) {
-		if _, ok := store[key]; !ok {
-			store[key] = &storage{
+	createStorageIfNotExists := func(metadata string, key string) {
+		if _, ok := store[metadata]; !ok {
+			store[metadata] = map[string]*storage{}
+		}
+
+		mdmap := store[metadata]
+		if _, ok := mdmap[key]; !ok {
+			mdmap[key] = &storage{
 				meetings:   []Meeting{},
 				recordings: []Recording{},
 			}
@@ -166,9 +175,9 @@ func (b *BigBlueButton) GetMetadataRecords(mr *MeetingsResponse, rr *RecordingsR
 			}
 
 			val := m.GetMetadata(md)
-			createStorageIfNotExists(val)
+			createStorageIfNotExists(md, val)
 
-			s := store[val]
+			s := store[md][val]
 			s.meetings = append(s.meetings, m)
 		}
 
@@ -179,16 +188,19 @@ func (b *BigBlueButton) GetMetadataRecords(mr *MeetingsResponse, rr *RecordingsR
 			}
 
 			val := r.GetMetadata(md)
-			createStorageIfNotExists(val)
+			createStorageIfNotExists(md, val)
 
-			s := store[val]
+			s := store[md][val]
 			s.recordings = append(s.recordings, r)
 		}
 
 	}
 
 	for key, val := range store {
-		res[key] = NewRecordFrom(val.meetings, val.recordings, *hr)
+		res[key] = map[string]*Record{}
+		for mk, mval := range val {
+			res[key][mk] = NewRecordFrom(mval.meetings, mval.recordings, *hr)
+		}
 	}
 
 	return res
@@ -283,7 +295,7 @@ func (b *BigBlueButton) getHealCheck() (*HealthCheck, error) {
 	return &response, nil
 }
 
-func (b *BigBlueButton) shouldGatherByMetadata() bool {
+func (b *BigBlueButton) shouldGatheredByMetadata() bool {
 	return len(b.GatherByMetadata) > 0
 }
 
