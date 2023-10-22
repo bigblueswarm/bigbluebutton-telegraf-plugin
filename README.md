@@ -58,7 +58,7 @@ The BigBlueButton Input Plugin gathers metrics from [BigBlueButton](https://bigb
 
 Using the `gather_by_metadata`, plugin will add meetings and recordings metrics grouped by meetings provided metadata like the following:
 ```
-bigbluebutton_tenant active_recordings=0i,listener_participants=0i,participants=0i,video_participants=0i,voice_participants=0i,meetings=1i 0
+tenant active_recordings=0i,listener_participants=0i,participants=0i,video_participants=0i,voice_participants=0i,meetings=1i 0
 ```
 
 For example, using the following configuration:
@@ -102,13 +102,13 @@ With a meeting:
 ```
 will generate the following metric:
 ```
-bigbluebutton_tenant active_recordings=0i,listener_participants=3i,participants=5i,video_participants=1i,voice_participants=3i,meetings=1i,tenant=localhost 1617611008787972024
+tenant active_recordings=0i,listener_participants=3i,participants=5i,video_participants=1i,voice_participants=3i,meetings=1i,tenant=localhost 1617611008787972024
 ```
 
 ## Example output
 ```sh
 bigbluebutton meetings=0i,voice_participants=0i,recordings=0i,active_recordings=0i,participants=0i,listener_participants=0i,published_recordings=0i,online=1i,video_participants=0i 1673991941312623800
-bigbluebutton_tenant voice_participants=0i,video_participants=0i,online=1i,meetings=1i,participants=0i,active_recordings=0i,listener_participants=0i,published_recordings=0i,recordings=0i,tenant=locahost 1673992041293464800
+tenant voice_participants=0i,video_participants=0i,online=1i,meetings=1i,participants=0i,active_recordings=0i,listener_participants=0i,published_recordings=0i,recordings=0i,tenant=locahost 1673992041293464800
 ```
 
 ## Installation
