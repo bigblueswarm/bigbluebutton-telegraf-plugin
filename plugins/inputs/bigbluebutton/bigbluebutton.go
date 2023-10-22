@@ -135,7 +135,7 @@ func (b *BigBlueButton) Gather(acc telegraf.Accumulator) error {
 			for mval, rs := range mrecs {
 				tags := make(map[string]string)
 				tags[mname] = mval
-				acc.AddFields(fmt.Sprintf("bigbluebutton_%s", mname), toStringMapInterface(rs.ToMap()), tags)
+				acc.AddFields(mname, toStringMapInterface(rs.ToMap()), tags)
 			}
 		}
 	}
