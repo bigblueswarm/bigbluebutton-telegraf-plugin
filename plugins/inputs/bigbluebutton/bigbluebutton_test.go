@@ -169,7 +169,7 @@ func TestBigBlueButtonGatherByMetadata(t *testing.T) {
 
 	expected := []telegraf.Metric{
 		testutil.MustMetric("bigbluebutton", map[string]string{}, toStringMapInterface(record), time.Unix(0, 0)),
-		testutil.MustMetric(fmt.Sprintf("bigbluebutton_%s", metadata), tags, toStringMapInterface(tenantRecord), time.Unix(0, 0)),
+		testutil.MustMetric(metadata, tags, toStringMapInterface(tenantRecord), time.Unix(0, 0)),
 	}
 
 	acc.Wait(len(expected))
